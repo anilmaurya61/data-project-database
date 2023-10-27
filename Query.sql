@@ -46,14 +46,37 @@ group by toss_winner;
 
 -- 6. Find a player who has won the highest number of Player of the Match awards for each season
 
-
+WITH PlayerAwards AS (
+    SELECT season, player_of_match, COUNT(*) AS awards_count
+    FROM matches
+    GROUP BY season, player_of_match
+),
+RankedAwards AS (
+    SELECT
+        season,
+        player_of_match,
+        awards_count,
+        RANK() OVER (PARTITION BY season ORDER BY awards_count DESC) AS rank
+    FROM PlayerAwards
+)
+SELECT season, player_of_match, awards_count
+FROM RankedAwards
+WHERE rank = 1;
 
 -- 7. Find the strike rate of a batsman for each season
 
-
+SELECT season,batsman,
+ROUND(SUM(batsman_runs)*100.0/COUNT(CASE WHEN noball_runs = 0 AND wide_runs = 0 THEN 1 ELSE NULL END),2) AS strike_rate
+FROM matches m INNER JOIN deliveries d ON m.id = d.match_id
+GROUP BY season,batsman
+ORDER BY season,strike_rate DESC
 
 -- 8. Find the highest number of times one player has been dismissed by another player
 
+SELECT batsman,bowler,count(*) AS num_of_times FROM deliveries
+WHERE dismissal_kind != 'run out'
+GROUP BY batsman,bowler
+ORDER BY num_of_times DESC LIMIT 1;
 
 
 -- 9. Find the bowler with the best economy in super overs
